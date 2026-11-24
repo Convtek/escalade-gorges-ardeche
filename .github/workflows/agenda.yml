@@ -1,0 +1,33 @@
+# Relit chaque nuit le Google Agenda public du club et met a jour agenda.json (planning de l'apercu).
+# Fichier genere par scripts/apercu-github.py du projet : ne pas le modifier ici.
+name: Planning du club
+
+on:
+  schedule:
+    - cron: "17 3 * * *"  # chaque nuit (4 h 17 a Paris en hiver, 5 h 17 en ete)
+  workflow_dispatch:  # bouton « Run workflow » pour relancer a la main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: planning
+
+jobs:
+  planning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Relire l'agenda du club
+        run: node .github/agenda/agenda.mjs agenda.json "https://calendar.google.com/calendar/ical/escaladegda%40gmail.com/public/basic.ics"
+      - name: Publier le planning
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agenda.json
+          git commit -m "Planning du club : relecture de l'agenda" || exit 0
+          git push
